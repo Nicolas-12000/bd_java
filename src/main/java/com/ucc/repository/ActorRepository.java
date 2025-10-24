@@ -8,42 +8,55 @@ import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.ucc.connection.DatabaseConnection;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.ucc.Connection.DatabaseConnection;
 import com.ucc.model.Actor;
 
-public class ActorRepository implements IRepository{
+public class ActorRepository implements IRepository {
+    private static final Logger LOGGER = LoggerFactory.getLogger(ActorRepository.class);
 
-    private Connection getConnection() throws SQLException{
+    private Connection getConnection() throws SQLException {
         return DatabaseConnection.getInstanceConnection();
     }
 
-
     @Override
-    public List<Actor> findAll() throws SQLException{
+    public List<Actor> findAll() throws SQLException {
         List<Actor> actors = new ArrayList<>();
-        try (Statement myStat = getConnection().createStatement();
-            ResultSet myRes= myStat.executeQuery("Select * from sakila.actor")) {
-            while (myRes.next()) {
-                Actor newActor = new Actor();
-                newActor.setActor_id(myRes.getInt("actor_id"));
-                newActor.setFirst_name(myRes.getString("first_name"));
-                newActor.setLast_name(myRes.getString("last_name"));
-                actors.add(newActor);
+        String sql = "SELECT actor_id, first_name, last_name FROM sakila.actor";
+        try (Connection conn = getConnection();
+             Statement st = conn.createStatement();
+             ResultSet rs = st.executeQuery(sql)) {
+            while (rs.next()) {
+                Actor a = new Actor();
+                a.setActor_id(rs.getInt("actor_id"));
+                a.setFirst_name(rs.getString("first_name"));
+                a.setLast_name(rs.getString("last_name"));
+                actors.add(a);
             }
-        } 
+        }
         return actors;
     }
 
     @Override
     public Actor save(Actor actor) throws SQLException {
-        String sql = "INSERT INTO sakila.actor(actor_id,first_name,last_name) VALUES (?,?,?)";
-        try(PreparedStatement myPrepare = getConnection().prepareStatement(sql);  ){
-            myPrepare.setInt(1, actor.getActor_id() );
-            myPrepare.setString(2, actor.getFirst_name() );
-            myPrepare.setString(3,actor.getLast_name() );    
-            myPrepare.executeUpdate();
+        String sql = "INSERT INTO sakila.actor(first_name, last_name) VALUES (?, ?)";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+            ps.setString(1, actor.getFirst_name());
+            ps.setString(2, actor.getLast_name());
+            int affected = ps.executeUpdate();
+            if (affected > 0) {
+                try (ResultSet keys = ps.getGeneratedKeys()) {
+                    if (keys.next()) {
+                        actor.setActor_id(keys.getInt(1));
+                    }
+                }
+            }
+            LOGGER.debug("Saved actor: {} (affected={})", actor, affected);
         }
         return actor;
     }
-    
+
 }

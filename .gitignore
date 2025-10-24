@@ -1,0 +1,15 @@
+# .gitignore for project
+target/
+.idea/
+.vscode/
+*.log
+*.class
+/*.iml
+/.DS_Store
+/.env
+
+# Maven wrapper
+.mvn/wrapper/maven-wrapper.jar
+
+# local settings
+settings.xml
