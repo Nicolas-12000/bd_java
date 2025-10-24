@@ -59,4 +59,31 @@ public class ActorRepository implements IRepository {
         return actor;
     }
 
+    @Override
+    public Actor update(Actor actor) throws SQLException {
+        String sql = "UPDATE sakila.actor SET first_name = ?, last_name = ? WHERE actor_id = ?";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, actor.getFirst_name());
+            ps.setString(2, actor.getLast_name());
+            ps.setInt(3, actor.getActor_id());
+            int affected = ps.executeUpdate();
+            LOGGER.debug("Update actor id={} affected={}", actor.getActor_id(), affected);
+            if (affected == 0) return null;
+            return actor;
+        }
+    }
+
+    @Override
+    public boolean deleteById(int id) throws SQLException {
+        String sql = "DELETE FROM sakila.actor WHERE actor_id = ?";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, id);
+            int affected = ps.executeUpdate();
+            LOGGER.debug("Delete actor id={} affected={}", id, affected);
+            return affected > 0;
+        }
+    }
+
 }
